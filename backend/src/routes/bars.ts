@@ -118,10 +118,16 @@ router.post("/:id/review", authMiddleware, async (req: AuthRequest, res: Respons
       return;
     }
 
-    const review = await prisma.barReview.upsert({
+    const existing = await prisma.barReview.findUnique({
       where: { userId_barId: { userId: req.userId!, barId: req.params.id } },
-      update: { rating, priceRating, ambianceRating, comment },
-      create: {
+    });
+    if (existing) {
+      res.status(409).json({ error: "Tu as deja note ce bar" });
+      return;
+    }
+
+    const review = await prisma.barReview.create({
+      data: {
         userId: req.userId!,
         barId: req.params.id,
         rating,
@@ -130,7 +136,7 @@ router.post("/:id/review", authMiddleware, async (req: AuthRequest, res: Respons
         comment,
       },
     });
-    res.json(review);
+    res.status(201).json(review);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Erreur serveur" });
