@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { checkInsAPI, storiesAPI, invitationsAPI } from "../../services/api";
@@ -140,11 +141,11 @@ export default function FeedScreen() {
     );
   };
 
-  const renderItem = ({ item }: { item: CheckIn }) => {
+  const renderItem = ({ item, index }: { item: CheckIn; index: number }) => {
     const isOwn = item.user.id === user?.id;
 
     return (
-      <View style={styles.card}>
+      <Animated.View style={[styles.card, { opacity: 1 }]}>
         <View style={styles.cardHeader}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
@@ -188,7 +189,7 @@ export default function FeedScreen() {
             isOwn={isOwn}
           />
         </View>
-      </View>
+      </Animated.View>
     );
   };
 

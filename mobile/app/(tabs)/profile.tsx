@@ -78,7 +78,18 @@ export default function ProfileScreen() {
           </Text>
         </View>
         <Text style={styles.username}>{user?.username}</Text>
-        <Text style={styles.level}>Niveau {user?.level} - {user?.xp} XP</Text>
+        <View style={styles.levelRow}>
+          <View style={styles.levelPill}>
+            <Ionicons name="star" size={14} color={COLORS.star} />
+            <Text style={styles.levelPillText}>Nv.{user?.level}</Text>
+          </View>
+          <Text style={styles.xpText}>{user?.xp} XP</Text>
+        </View>
+        {/* XP progress bar */}
+        <View style={styles.xpBarBg}>
+          <View style={[styles.xpBarFill, { width: `${((user?.xp || 0) % 100)}%` }]} />
+        </View>
+        <Text style={styles.xpNext}>{100 - ((user?.xp || 0) % 100)} XP pour le prochain niveau</Text>
       </View>
 
       {/* Stats */}
@@ -178,7 +189,22 @@ const styles = StyleSheet.create({
   },
   avatarLargeText: { fontSize: 32, fontWeight: "900", color: "#FFF" },
   username: { fontSize: SIZES.xxl, fontWeight: "900", color: COLORS.text },
-  level: { fontSize: SIZES.md, color: COLORS.textSecondary, marginTop: 4 },
+  levelRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 },
+  levelPill: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: COLORS.primaryLight, paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 12,
+  },
+  levelPillText: { fontSize: SIZES.sm, fontWeight: "700", color: COLORS.primary },
+  xpText: { fontSize: SIZES.sm, color: COLORS.textSecondary },
+  xpBarBg: {
+    width: 200, height: 6, borderRadius: 3,
+    backgroundColor: COLORS.border, marginTop: 10,
+  },
+  xpBarFill: {
+    height: 6, borderRadius: 3, backgroundColor: COLORS.primary,
+  },
+  xpNext: { fontSize: SIZES.xs, color: COLORS.textSecondary, marginTop: 4 },
   statsRow: {
     flexDirection: "row",
     marginHorizontal: SIZES.padding,

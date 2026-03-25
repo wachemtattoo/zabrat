@@ -33,4 +33,6 @@ export const SIZES = {
   padding: 16,
 };
 
-export const API_URL = "http://192.168.100.101:3000";
+export const API_URL = __DEV__
+  ? "http://192.168.100.101:3000"
+  : "https://zabrat-api.onrender.com";
