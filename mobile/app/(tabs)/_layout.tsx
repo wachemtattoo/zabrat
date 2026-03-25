@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { View, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Platform } from "react-native";
 import { COLORS } from "../../constants/theme";
 
 export default function TabsLayout() {
@@ -11,7 +11,7 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: COLORS.textSecondary,
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabLabel,
-        headerStyle: { backgroundColor: COLORS.surface },
+        headerStyle: { backgroundColor: COLORS.surface, elevation: 0, shadowOpacity: 0 },
         headerTintColor: COLORS.text,
         headerTitleStyle: { fontWeight: "700" },
       }}
@@ -20,10 +20,22 @@ export default function TabsLayout() {
         name="feed"
         options={{
           title: "Accueil",
-          headerTitle: "Zabrat",
-          headerTitleStyle: { fontWeight: "900", color: COLORS.primary, fontSize: 24 },
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
+          headerTitle: () => (
+            <View style={styles.headerLogo}>
+              <Text style={styles.headerLogoEmoji}>🍺</Text>
+              <Text style={styles.headerLogoText}>Zabrat</Text>
+            </View>
+          ),
+          headerRight: () => (
+            <View style={styles.headerRight}>
+              <View style={styles.notifBadge}>
+                <Ionicons name="notifications-outline" size={22} color={COLORS.secondary} />
+                <View style={styles.notifDot} />
+              </View>
+            </View>
+          ),
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -31,8 +43,8 @@ export default function TabsLayout() {
         name="friends"
         options={{
           title: "Amis",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="people-outline" size={size} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "people" : "people-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -40,9 +52,10 @@ export default function TabsLayout() {
         name="log"
         options={{
           title: "",
+          headerShown: false,
           tabBarIcon: () => (
             <View style={styles.logButton}>
-              <Ionicons name="beer" size={28} color="#FFF" />
+              <Ionicons name="beer" size={30} color="#FFF" />
             </View>
           ),
         }}
@@ -50,9 +63,9 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="ranking"
         options={{
-          title: "Classement",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="podium-outline" size={size} color={color} />
+          title: "Statist.",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "stats-chart" : "stats-chart-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -60,8 +73,9 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: "Profil",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -71,29 +85,59 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: 88,
-    paddingBottom: 24,
+    height: Platform.OS === "ios" ? 88 : 68,
+    paddingBottom: Platform.OS === "ios" ? 24 : 8,
     paddingTop: 8,
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "600",
+    marginTop: 2,
+  },
+  headerLogo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  headerLogoEmoji: { fontSize: 24 },
+  headerLogoText: {
+    fontSize: 26,
+    fontWeight: "900",
+    color: COLORS.secondary,
+    letterSpacing: -0.5,
+  },
+  headerRight: {
+    marginRight: 16,
+  },
+  notifBadge: {
+    position: "relative",
+  },
+  notifDot: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.primary,
   },
   logButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: COLORS.primary,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
+    marginBottom: 24,
+    shadowColor: COLORS.primaryDark,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 10,
+    borderWidth: 4,
+    borderColor: COLORS.surface,
   },
 });

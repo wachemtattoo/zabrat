@@ -10,6 +10,7 @@ import {
   Switch,
   Modal,
   Platform,
+  SafeAreaView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -29,11 +30,17 @@ interface Bar {
   address: string | null;
 }
 
+const BEER_TYPES = [
+  { type: "IPA", emoji: "🍺", color: "#F5A623" },
+  { type: "Lager", emoji: "🍻", color: "#FFC107" },
+  { type: "Pils", emoji: "🥂", color: "#FFD54F" },
+  { type: "Stout", emoji: "🍫", color: "#5D4037" },
+  { type: "Wheat", emoji: "🌾", color: "#FF9800" },
+  { type: "Abbey", emoji: "⛪", color: "#8D6E63" },
+];
+
 function getBeerIcon(type: string): string {
-  const map: Record<string, string> = {
-    IPA: "🍺", Lager: "🍻", Stout: "🍫", Pils: "🥂", Wheat: "🌾", Abbey: "⛪",
-  };
-  return map[type] || "🍺";
+  return BEER_TYPES.find((t) => t.type === type)?.emoji || "🍺";
 }
 
 export default function LogScreen() {
@@ -41,6 +48,7 @@ export default function LogScreen() {
   const [allBeers, setAllBeers] = useState<Beer[]>([]);
   const [bars, setBars] = useState<Bar[]>([]);
   const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState<string | null>(null);
   const [logging, setLogging] = useState<string | null>(null);
 
   // Log options
@@ -136,27 +144,50 @@ export default function LogScreen() {
     }
   };
 
-  const filteredBeers = search
-    ? allBeers.filter(
-        (b) =>
-          b.name.toLowerCase().includes(search.toLowerCase()) ||
-          b.type.toLowerCase().includes(search.toLowerCase()) ||
-          (b.brand && b.brand.toLowerCase().includes(search.toLowerCase()))
-      )
-    : allBeers;
+  const filteredBeers = allBeers.filter((b) => {
+    const matchSearch = !search ||
+      b.name.toLowerCase().includes(search.toLowerCase()) ||
+      b.type.toLowerCase().includes(search.toLowerCase()) ||
+      (b.brand && b.brand.toLowerCase().includes(search.toLowerCase()));
+    const matchType = !filterType || b.type === filterType;
+    return matchSearch && matchType;
+  });
 
   const filteredBars = barSearch
     ? bars.filter((b) => b.name.toLowerCase().includes(barSearch.toLowerCase()))
     : bars;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Ajouter une biere</Text>
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Ajouter une biere</Text>
+      </View>
+
+      {/* Beer type filter chips — like mockup */}
+      <View style={styles.typeFilters}>
+        {BEER_TYPES.map((bt) => (
+          <TouchableOpacity
+            key={bt.type}
+            style={[
+              styles.typeChip,
+              filterType === bt.type && { backgroundColor: bt.color },
+            ]}
+            onPress={() => setFilterType(filterType === bt.type ? null : bt.type)}
+          >
+            <Text style={styles.typeChipEmoji}>{bt.emoji}</Text>
+            <Text style={[
+              styles.typeChipText,
+              filterType === bt.type && { color: "#FFF" },
+            ]}>{bt.type}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {/* Quick picks */}
-      {recentBeers.length > 0 && !search && (
+      {recentBeers.length > 0 && !search && !filterType && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recentes (tap = log rapide)</Text>
+          <Text style={styles.sectionTitle}>RECENTES</Text>
           <View style={styles.quickPicks}>
             {recentBeers.map((beer) => (
               <TouchableOpacity
@@ -165,13 +196,14 @@ export default function LogScreen() {
                 onPress={() => quickLog(beer)}
                 onLongPress={() => openOptions(beer)}
                 disabled={logging === beer.id}
+                activeOpacity={0.7}
               >
                 <Text style={styles.quickPickEmoji}>{getBeerIcon(beer.type)}</Text>
                 <Text style={styles.quickPickName} numberOfLines={1}>{beer.name}</Text>
+                <Text style={styles.quickPickType}>{beer.type}</Text>
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.hint}>Appui long = options (bar, note, story)</Text>
         </View>
       )}
 
@@ -201,41 +233,55 @@ export default function LogScreen() {
             style={styles.beerRow}
             onPress={() => openOptions(item)}
             disabled={logging === item.id}
+            activeOpacity={0.7}
           >
-            <Text style={styles.beerEmoji}>{getBeerIcon(item.type)}</Text>
+            <View style={styles.beerEmojiBox}>
+              <Text style={styles.beerEmoji}>{getBeerIcon(item.type)}</Text>
+            </View>
             <View style={styles.beerInfo}>
               <Text style={styles.beerName}>{item.name}</Text>
               <Text style={styles.beerMeta}>
-                {item.brand ? `${item.brand} - ` : ""}{item.type}
+                {item.brand ? `${item.brand} · ` : ""}{item.type}
               </Text>
             </View>
-            <Ionicons name="add-circle" size={28} color={COLORS.primary} />
+            <TouchableOpacity
+              style={styles.quickAddBtn}
+              onPress={() => quickLog(item)}
+              disabled={logging === item.id}
+            >
+              <Ionicons name="add" size={22} color="#FFF" />
+            </TouchableOpacity>
           </TouchableOpacity>
         )}
         contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
       />
 
       {/* Options Modal */}
       <Modal visible={showOptions} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {getBeerIcon(selectedBeer?.type || "")} {selectedBeer?.name}
-              </Text>
-              <TouchableOpacity onPress={() => setShowOptions(false)}>
-                <Ionicons name="close" size={24} color={COLORS.text} />
+              <View style={styles.modalBeerInfo}>
+                <Text style={styles.modalEmoji}>{getBeerIcon(selectedBeer?.type || "")}</Text>
+                <View>
+                  <Text style={styles.modalTitle}>{selectedBeer?.name}</Text>
+                  <Text style={styles.modalSubtitle}>{selectedBeer?.brand} · {selectedBeer?.type}</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setShowOptions(false)} style={styles.closeBtn}>
+                <Ionicons name="close" size={22} color={COLORS.textSecondary} />
               </TouchableOpacity>
             </View>
 
             {/* Bar selection */}
-            <TouchableOpacity
-              style={styles.optionRow}
-              onPress={() => setShowBarPicker(true)}
-            >
-              <Ionicons name="location-outline" size={22} color={COLORS.primary} />
+            <TouchableOpacity style={styles.optionRow} onPress={() => setShowBarPicker(true)}>
+              <View style={styles.optionIcon}>
+                <Ionicons name="location" size={18} color={COLORS.primary} />
+              </View>
               <Text style={styles.optionText}>
-                {selectedBar ? selectedBar.name : "Ajouter un lieu (optionnel)"}
+                {selectedBar ? selectedBar.name : "Ajouter un lieu"}
               </Text>
               <Ionicons name="chevron-forward" size={18} color={COLORS.textSecondary} />
             </TouchableOpacity>
@@ -243,7 +289,7 @@ export default function LogScreen() {
             {/* Note */}
             <TextInput
               style={styles.noteInput}
-              placeholder="Notes (optionnel)"
+              placeholder="Que penses-tu de cette biere ?"
               placeholderTextColor={COLORS.textSecondary}
               value={note}
               onChangeText={setNote}
@@ -252,7 +298,9 @@ export default function LogScreen() {
 
             {/* Story toggle */}
             <View style={styles.storyRow}>
-              <Ionicons name="camera-outline" size={22} color={COLORS.primary} />
+              <View style={styles.optionIcon}>
+                <Ionicons name="camera" size={18} color={COLORS.primary} />
+              </View>
               <Text style={styles.optionText}>Publier en Story (24h)</Text>
               <Switch
                 value={isStory}
@@ -262,15 +310,17 @@ export default function LogScreen() {
               />
             </View>
 
-            {/* Submit */}
+            {/* Submit — big orange button like mockup */}
             <TouchableOpacity
               style={[styles.submitBtn, logging && styles.submitBtnDisabled]}
               onPress={submitLog}
               disabled={!!logging}
+              activeOpacity={0.8}
             >
               <Text style={styles.submitBtnText}>
-                {logging ? "..." : "Je bois ca ! 🍻"}
+                {logging ? "..." : "Je bois ca !"}
               </Text>
+              <Text style={styles.submitBtnEmoji}>🍻</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -280,10 +330,11 @@ export default function LogScreen() {
       <Modal visible={showBarPicker} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Choisir un bar</Text>
-              <TouchableOpacity onPress={() => setShowBarPicker(false)}>
-                <Ionicons name="close" size={24} color={COLORS.text} />
+              <Text style={styles.modalTitle}>Choisir un lieu</Text>
+              <TouchableOpacity onPress={() => setShowBarPicker(false)} style={styles.closeBtn}>
+                <Ionicons name="close" size={22} color={COLORS.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -305,14 +356,15 @@ export default function LogScreen() {
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.barPickRow}
-                  onPress={() => {
-                    setSelectedBar(item);
-                    setShowBarPicker(false);
-                    setBarSearch("");
-                  }}
+                  onPress={() => { setSelectedBar(item); setShowBarPicker(false); setBarSearch(""); }}
                 >
-                  <Ionicons name="location" size={18} color={COLORS.primary} />
-                  <Text style={styles.barPickName}>{item.name}</Text>
+                  <View style={styles.barPickIcon}>
+                    <Ionicons name="location" size={16} color={COLORS.primary} />
+                  </View>
+                  <View>
+                    <Text style={styles.barPickName}>{item.name}</Text>
+                    {item.address && <Text style={styles.barPickAddr}>{item.address}</Text>}
+                  </View>
                 </TouchableOpacity>
               )}
               ListEmptyComponent={
@@ -320,7 +372,6 @@ export default function LogScreen() {
               }
             />
 
-            {/* Create new bar */}
             <View style={styles.newBarSection}>
               <Text style={styles.newBarLabel}>Nouveau bar :</Text>
               <View style={styles.newBarRow}>
@@ -339,45 +390,74 @@ export default function LogScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  title: {
-    fontSize: SIZES.xxl, fontWeight: "900", color: COLORS.text,
-    padding: SIZES.padding, paddingBottom: 0,
+  header: { paddingHorizontal: SIZES.padding, paddingTop: 12, paddingBottom: 4 },
+  title: { fontSize: SIZES.xxl, fontWeight: "900", color: COLORS.text },
+
+  // Type filters — horizontal chips like mockup
+  typeFilters: {
+    flexDirection: "row", paddingHorizontal: SIZES.padding,
+    gap: 8, marginTop: 12, marginBottom: 4, flexWrap: "wrap",
   },
-  section: { padding: SIZES.padding, paddingBottom: 0 },
+  typeChip: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: COLORS.surface, borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderWidth: 1.5, borderColor: COLORS.border,
+  },
+  typeChipEmoji: { fontSize: 18 },
+  typeChipText: { fontSize: SIZES.sm, fontWeight: "700", color: COLORS.text },
+
+  // Quick picks
+  section: { paddingHorizontal: SIZES.padding, marginTop: 12 },
   sectionTitle: {
-    fontSize: SIZES.md, fontWeight: "700", color: COLORS.textSecondary,
-    marginBottom: 12, textTransform: "uppercase", letterSpacing: 1,
+    fontSize: 11, fontWeight: "800", color: COLORS.textSecondary,
+    marginBottom: 10, letterSpacing: 1.5,
   },
-  quickPicks: { flexDirection: "row", gap: 12, flexWrap: "wrap" },
+  quickPicks: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
   quickPick: {
-    backgroundColor: COLORS.primaryLight, borderRadius: SIZES.radius,
-    paddingHorizontal: 16, paddingVertical: 12, alignItems: "center",
+    backgroundColor: COLORS.surface, borderRadius: SIZES.radius,
+    paddingHorizontal: 14, paddingVertical: 12, alignItems: "center",
     minWidth: 80, borderWidth: 2, borderColor: COLORS.primary,
   },
   quickPickEmoji: { fontSize: 28 },
-  quickPickName: { fontSize: SIZES.sm, fontWeight: "700", color: COLORS.secondary, marginTop: 4 },
-  hint: { fontSize: SIZES.xs, color: COLORS.textSecondary, marginTop: 8, fontStyle: "italic" },
+  quickPickName: { fontSize: 11, fontWeight: "700", color: COLORS.secondary, marginTop: 4 },
+  quickPickType: { fontSize: 9, color: COLORS.textSecondary, marginTop: 1 },
+
+  // Search
   searchBox: {
     flexDirection: "row", alignItems: "center", backgroundColor: COLORS.surface,
-    margin: SIZES.padding, borderRadius: SIZES.radius, paddingHorizontal: 12,
+    margin: SIZES.padding, marginTop: 12, marginBottom: 8,
+    borderRadius: SIZES.radius, paddingHorizontal: 12,
     borderWidth: 1, borderColor: COLORS.border, gap: 8,
   },
-  searchInput: { flex: 1, paddingVertical: 14, fontSize: SIZES.lg, color: COLORS.text },
-  list: { paddingHorizontal: SIZES.padding, gap: 8, paddingBottom: 20 },
+  searchInput: { flex: 1, paddingVertical: 12, fontSize: SIZES.md, color: COLORS.text },
+
+  // Beer list
+  list: { paddingHorizontal: SIZES.padding, gap: 6, paddingBottom: 20 },
   beerRow: {
     flexDirection: "row", alignItems: "center", backgroundColor: COLORS.surface,
-    borderRadius: SIZES.radius, padding: 14, gap: 12,
+    borderRadius: SIZES.radius, padding: 12, gap: 12,
   },
-  beerEmoji: { fontSize: 32 },
+  beerEmojiBox: {
+    width: 48, height: 48, borderRadius: 12,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: "center", alignItems: "center",
+  },
+  beerEmoji: { fontSize: 26 },
   beerInfo: { flex: 1 },
   beerName: { fontSize: SIZES.lg, fontWeight: "700", color: COLORS.text },
   beerMeta: { fontSize: SIZES.sm, color: COLORS.textSecondary, marginTop: 2 },
+  quickAddBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: COLORS.primary,
+    justifyContent: "center", alignItems: "center",
+  },
 
   // Modal
   modalOverlay: {
@@ -387,41 +467,70 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: COLORS.surface, borderTopLeftRadius: 24,
     borderTopRightRadius: 24, padding: SIZES.padding * 1.5,
-    maxHeight: "80%",
+    maxHeight: "85%",
+  },
+  modalHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: COLORS.border,
+    alignSelf: "center", marginBottom: 16,
   },
   modalHeader: {
     flexDirection: "row", justifyContent: "space-between",
     alignItems: "center", marginBottom: 20,
   },
+  modalBeerInfo: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
+  modalEmoji: { fontSize: 36 },
   modalTitle: { fontSize: SIZES.xl, fontWeight: "900", color: COLORS.text },
+  modalSubtitle: { fontSize: SIZES.sm, color: COLORS.textSecondary, marginTop: 2 },
+  closeBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: COLORS.background,
+    justifyContent: "center", alignItems: "center",
+  },
   optionRow: {
     flexDirection: "row", alignItems: "center", gap: 12,
     paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+  },
+  optionIcon: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: "center", alignItems: "center",
   },
   optionText: { flex: 1, fontSize: SIZES.lg, color: COLORS.text },
   noteInput: {
     backgroundColor: COLORS.background, borderRadius: SIZES.radius,
     padding: 14, fontSize: SIZES.md, color: COLORS.text,
-    marginVertical: 12, minHeight: 60, textAlignVertical: "top",
+    marginVertical: 14, minHeight: 60, textAlignVertical: "top",
   },
   storyRow: {
     flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12,
   },
   submitBtn: {
-    backgroundColor: COLORS.primary, borderRadius: SIZES.radius,
-    padding: 16, alignItems: "center", marginTop: 12,
+    backgroundColor: COLORS.primary, borderRadius: SIZES.radiusLg,
+    padding: 18, alignItems: "center", marginTop: 16,
+    flexDirection: "row", justifyContent: "center", gap: 8,
+    shadowColor: COLORS.primaryDark,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
   submitBtnDisabled: { opacity: 0.6 },
-  submitBtnText: { color: "#FFF", fontSize: SIZES.lg, fontWeight: "900" },
+  submitBtnText: { color: "#FFF", fontSize: 18, fontWeight: "900" },
+  submitBtnEmoji: { fontSize: 22 },
 
   // Bar picker
   barPickRow: {
-    flexDirection: "row", alignItems: "center", gap: 10,
+    flexDirection: "row", alignItems: "center", gap: 12,
     paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
-  barPickName: { fontSize: SIZES.lg, color: COLORS.text },
+  barPickIcon: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: "center", alignItems: "center",
+  },
+  barPickName: { fontSize: SIZES.lg, fontWeight: "600", color: COLORS.text },
+  barPickAddr: { fontSize: SIZES.sm, color: COLORS.textSecondary, marginTop: 1 },
   emptyBarText: { fontSize: SIZES.md, color: COLORS.textSecondary, textAlign: "center", paddingVertical: 20 },
-  newBarSection: { marginTop: 16 },
+  newBarSection: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: COLORS.border },
   newBarLabel: { fontSize: SIZES.sm, fontWeight: "700", color: COLORS.textSecondary, marginBottom: 8 },
   newBarRow: { flexDirection: "row", gap: 8 },
   newBarInput: {

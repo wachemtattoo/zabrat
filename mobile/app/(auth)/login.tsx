@@ -10,12 +10,14 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES } from "../../constants/theme";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login } = useAuthStore();
   const router = useRouter();
@@ -40,34 +42,48 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
+      {/* Logo section */}
       <View style={styles.header}>
+        <Text style={styles.logoEmoji}>🍺</Text>
         <Text style={styles.logo}>Zabrat</Text>
         <Text style={styles.subtitle}>Track. Share. Cheers.</Text>
       </View>
 
+      {/* Form */}
       <View style={styles.form}>
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor={COLORS.textSecondary}
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Mot de passe"
-          placeholderTextColor={COLORS.textSecondary}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
+        <View style={styles.inputGroup}>
+          <Ionicons name="mail-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor={COLORS.textSecondary}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Ionicons name="lock-closed-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+          <TextInput
+            style={styles.input}
+            placeholder="Mot de passe"
+            placeholderTextColor={COLORS.textSecondary}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+          />
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+            <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           style={[styles.button, loading && styles.buttonDisabled]}
           onPress={handleLogin}
           disabled={loading}
+          activeOpacity={0.8}
         >
           <Text style={styles.buttonText}>
             {loading ? "Connexion..." : "Se connecter"}
@@ -89,55 +105,66 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
     justifyContent: "center",
-    padding: SIZES.padding * 2,
+    padding: SIZES.padding * 1.5,
   },
   header: {
     alignItems: "center",
     marginBottom: 48,
   },
+  logoEmoji: { fontSize: 56, marginBottom: 8 },
   logo: {
-    fontSize: 48,
+    fontSize: 44,
     fontWeight: "900",
-    color: COLORS.primary,
+    color: COLORS.secondary,
     letterSpacing: -1,
   },
   subtitle: {
-    fontSize: SIZES.lg,
+    fontSize: SIZES.md,
     color: COLORS.textSecondary,
-    marginTop: 8,
+    marginTop: 6,
+    letterSpacing: 2,
   },
-  form: {
-    gap: 16,
-  },
-  input: {
+  form: { gap: 14 },
+  inputGroup: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: COLORS.surface,
     borderRadius: SIZES.radius,
-    padding: 16,
-    fontSize: SIZES.lg,
-    borderWidth: 1,
+    paddingHorizontal: 14,
+    borderWidth: 1.5,
     borderColor: COLORS.border,
+    gap: 10,
+  },
+  inputIcon: { width: 22 },
+  input: {
+    flex: 1,
+    paddingVertical: 16,
+    fontSize: SIZES.lg,
     color: COLORS.text,
   },
   button: {
     backgroundColor: COLORS.primary,
     borderRadius: SIZES.radius,
-    padding: 16,
+    padding: 18,
     alignItems: "center",
     marginTop: 8,
+    shadowColor: COLORS.primaryDark,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
+  buttonDisabled: { opacity: 0.6 },
   buttonText: {
     color: "#FFF",
     fontSize: SIZES.lg,
-    fontWeight: "700",
+    fontWeight: "800",
   },
   link: {
     textAlign: "center",
     color: COLORS.textSecondary,
     fontSize: SIZES.md,
-    marginTop: 16,
+    marginTop: 20,
   },
   linkBold: {
     color: COLORS.primary,

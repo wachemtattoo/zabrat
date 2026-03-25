@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  Animated,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { checkInsAPI, storiesAPI, invitationsAPI } from "../../services/api";
@@ -44,7 +44,7 @@ function timeAgo(date: string): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
   if (seconds < 60) return "a l'instant";
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `il y a ${minutes}min`;
+  if (minutes < 60) return `il y a ${minutes} min`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `il y a ${hours}h`;
   const days = Math.floor(hours / 24);
@@ -56,6 +56,12 @@ function getBeerEmoji(type: string): string {
     IPA: "🍺", Lager: "🍻", Stout: "🍫", Pils: "🥂", Wheat: "🌾", Abbey: "⛪",
   };
   return map[type] || "🍺";
+}
+
+function getAvatarColor(name: string): string {
+  const colors = ["#E91E63", "#9C27B0", "#3F51B5", "#009688", "#FF5722", "#795548", "#607D8B"];
+  const idx = name.charCodeAt(0) % colors.length;
+  return colors[idx];
 }
 
 export default function FeedScreen() {
@@ -104,10 +110,12 @@ export default function FeedScreen() {
                 group.stories.map((s: any) => `${getBeerEmoji(s.beer.type)} ${s.beer.name}${s.bar ? ` @ ${s.bar.name}` : ""}`).join("\n")
               )}
             >
-              <View style={[styles.storyAvatar, group.user.id === user?.id && styles.storyAvatarSelf]}>
-                <Text style={styles.storyAvatarText}>
-                  {group.user.username[0].toUpperCase()}
-                </Text>
+              <View style={[styles.storyRing, group.user.id === user?.id && styles.storyRingSelf]}>
+                <View style={[styles.storyAvatar, { backgroundColor: getAvatarColor(group.user.username) }]}>
+                  <Text style={styles.storyAvatarText}>
+                    {group.user.username[0].toUpperCase()}
+                  </Text>
+                </View>
               </View>
               <Text style={styles.storyName} numberOfLines={1}>
                 {group.user.id === user?.id ? "Toi" : group.user.username}
@@ -124,64 +132,83 @@ export default function FeedScreen() {
     return (
       <View style={styles.invitationsSection}>
         {invitations.map((inv) => (
-          <View key={inv.id} style={styles.invitationCard}>
-            <Ionicons name="megaphone" size={20} color={COLORS.primary} />
+          <TouchableOpacity key={inv.id} style={styles.invitationCard} activeOpacity={0.8}>
+            <View style={styles.invitationIcon}>
+              <Ionicons name="location" size={18} color="#FFF" />
+            </View>
             <View style={styles.invitationContent}>
               <Text style={styles.invitationText}>
                 <Text style={styles.invitationUser}>{inv.user.username}</Text>
                 {" "}est a{" "}
                 <Text style={styles.invitationBar}>{inv.bar.name}</Text>
-                {inv.message ? ` — "${inv.message}"` : ""}
               </Text>
-              <Text style={styles.invitationMeta}>Qui rejoint ?</Text>
+              {inv.message && <Text style={styles.invitationMsg}>"{inv.message}"</Text>}
+              <Text style={styles.invitationCta}>Rejoindre &rarr;</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
     );
   };
 
-  const renderItem = ({ item, index }: { item: CheckIn; index: number }) => {
+  const renderItem = ({ item }: { item: CheckIn }) => {
     const isOwn = item.user.id === user?.id;
 
     return (
-      <Animated.View style={[styles.card, { opacity: 1 }]}>
+      <View style={styles.card}>
+        {/* Card header */}
         <View style={styles.cardHeader}>
-          <View style={styles.avatar}>
+          <View style={[styles.avatar, { backgroundColor: getAvatarColor(item.user.username) }]}>
             <Text style={styles.avatarText}>
               {item.user.username[0].toUpperCase()}
             </Text>
           </View>
           <View style={styles.cardHeaderText}>
-            <Text style={styles.username}>
-              {item.user.username}{" "}
-              <Text style={styles.levelBadge}>Nv.{item.user.level}</Text>
-            </Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.username}>{item.user.username}</Text>
+              {item.user.level > 1 && (
+                <View style={styles.levelPill}>
+                  <Text style={styles.levelPillText}>Nv.{item.user.level}</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
           </View>
           {item.isStory && (
             <View style={styles.storyTag}>
+              <Ionicons name="camera" size={12} color="#FFF" />
               <Text style={styles.storyTagText}>Story</Text>
             </View>
           )}
         </View>
 
+        {/* Beer info */}
         <View style={styles.cardBody}>
-          <Text style={styles.beerName}>
-            {getBeerEmoji(item.beer.type)} Boit une {item.beer.name}
-          </Text>
-          {item.beer.brand && (
-            <Text style={styles.beerBrand}>{item.beer.brand} - {item.beer.type}</Text>
-          )}
+          <View style={styles.beerRow}>
+            <Text style={styles.beerEmoji}>{getBeerEmoji(item.beer.type)}</Text>
+            <View style={styles.beerInfo}>
+              <Text style={styles.beerAction}>Boit une <Text style={styles.beerName}>{item.beer.name}</Text></Text>
+              {item.beer.brand && (
+                <Text style={styles.beerMeta}>{item.beer.brand} &middot; {item.beer.type}</Text>
+              )}
+            </View>
+          </View>
+
           {item.bar && (
-            <View style={styles.barRow}>
-              <Ionicons name="location-outline" size={14} color={COLORS.primary} />
+            <View style={styles.barChip}>
+              <Ionicons name="location" size={14} color={COLORS.primary} />
               <Text style={styles.barName}>{item.bar.name}</Text>
             </View>
           )}
-          {item.note && <Text style={styles.note}>{item.note}</Text>}
+
+          {item.note && (
+            <View style={styles.noteBox}>
+              <Text style={styles.note}>"{item.note}"</Text>
+            </View>
+          )}
         </View>
 
+        {/* Footer */}
         <View style={styles.cardFooter}>
           <CheersButton
             checkInId={item.id}
@@ -189,7 +216,7 @@ export default function FeedScreen() {
             isOwn={isOwn}
           />
         </View>
-      </Animated.View>
+      </View>
     );
   };
 
@@ -209,9 +236,12 @@ export default function FeedScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
         }
         contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Ionicons name="beer-outline" size={64} color={COLORS.border} />
+            <View style={styles.emptyIcon}>
+              <Ionicons name="beer-outline" size={48} color={COLORS.primary} />
+            </View>
             <Text style={styles.emptyText}>Aucune activite</Text>
             <Text style={styles.emptySubtext}>
               Ajoute des amis et log ta premiere biere !
@@ -225,34 +255,45 @@ export default function FeedScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  list: { padding: SIZES.padding, gap: 12 },
+  list: { paddingHorizontal: SIZES.padding, paddingBottom: 20, gap: 12 },
 
   // Stories
-  storiesSection: { marginBottom: 12 },
-  storiesScroll: { gap: 16 },
-  storyBubble: { alignItems: "center", width: 68 },
-  storyAvatar: {
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: COLORS.primaryLight,
-    justifyContent: "center", alignItems: "center",
-    borderWidth: 3, borderColor: COLORS.primary,
+  storiesSection: { marginBottom: 4, marginTop: 4 },
+  storiesScroll: { gap: 14, paddingRight: 16 },
+  storyBubble: { alignItems: "center", width: 72 },
+  storyRing: {
+    width: 62, height: 62, borderRadius: 31,
+    padding: 3,
+    borderWidth: 2.5, borderColor: COLORS.primary,
   },
-  storyAvatarSelf: { borderColor: COLORS.textSecondary },
-  storyAvatarText: { fontSize: 20, fontWeight: "700", color: COLORS.primary },
-  storyName: { fontSize: SIZES.xs, fontWeight: "600", color: COLORS.text, marginTop: 4 },
+  storyRingSelf: { borderColor: COLORS.textSecondary },
+  storyAvatar: {
+    flex: 1, borderRadius: 28,
+    justifyContent: "center", alignItems: "center",
+  },
+  storyAvatarText: { fontSize: 22, fontWeight: "800", color: "#FFF" },
+  storyName: { fontSize: 11, fontWeight: "600", color: COLORS.text, marginTop: 4 },
 
   // Invitations
-  invitationsSection: { gap: 8, marginBottom: 12 },
+  invitationsSection: { gap: 8, marginBottom: 8 },
   invitationCard: {
-    flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: COLORS.primaryLight, borderRadius: SIZES.radius,
-    padding: 12, borderLeftWidth: 4, borderLeftColor: COLORS.primary,
+    flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: COLORS.surface, borderRadius: SIZES.radiusLg,
+    padding: 14,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+  },
+  invitationIcon: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: COLORS.primary,
+    justifyContent: "center", alignItems: "center",
   },
   invitationContent: { flex: 1 },
-  invitationText: { fontSize: SIZES.md, color: COLORS.text },
-  invitationUser: { fontWeight: "700" },
-  invitationBar: { fontWeight: "700", color: COLORS.primary },
-  invitationMeta: { fontSize: SIZES.sm, color: COLORS.primary, fontWeight: "700", marginTop: 4 },
+  invitationText: { fontSize: SIZES.md, color: COLORS.text, lineHeight: 20 },
+  invitationUser: { fontWeight: "800" },
+  invitationBar: { fontWeight: "800", color: COLORS.primary },
+  invitationMsg: { fontSize: SIZES.sm, color: COLORS.textSecondary, fontStyle: "italic", marginTop: 2 },
+  invitationCta: { fontSize: SIZES.sm, color: COLORS.primary, fontWeight: "700", marginTop: 4 },
 
   // Cards
   card: {
@@ -264,33 +305,62 @@ const styles = StyleSheet.create({
   },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
   avatar: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: COLORS.primaryLight,
+    width: 46, height: 46, borderRadius: 23,
     justifyContent: "center", alignItems: "center",
   },
-  avatarText: { fontSize: 18, fontWeight: "700", color: COLORS.primary },
+  avatarText: { fontSize: 19, fontWeight: "800", color: "#FFF" },
   cardHeaderText: { flex: 1 },
-  username: { fontSize: SIZES.lg, fontWeight: "700", color: COLORS.text },
-  levelBadge: { fontSize: SIZES.xs, fontWeight: "600", color: COLORS.primary },
-  time: { fontSize: SIZES.sm, color: COLORS.textSecondary, marginTop: 2 },
-  storyTag: {
-    backgroundColor: COLORS.primary, borderRadius: SIZES.radiusSm,
-    paddingHorizontal: 8, paddingVertical: 3,
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  username: { fontSize: SIZES.lg, fontWeight: "800", color: COLORS.text },
+  levelPill: {
+    backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: 6, paddingVertical: 2,
+    borderRadius: 8,
   },
-  storyTagText: { color: "#FFF", fontSize: SIZES.xs, fontWeight: "700" },
-  cardBody: { marginTop: 12 },
-  beerName: { fontSize: SIZES.xl, fontWeight: "700", color: COLORS.text },
-  beerBrand: { fontSize: SIZES.sm, color: COLORS.textSecondary, marginTop: 2 },
-  barRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
-  barName: { fontSize: SIZES.md, color: COLORS.primary, fontWeight: "600" },
-  note: { fontSize: SIZES.md, color: COLORS.textSecondary, marginTop: 8, fontStyle: "italic" },
+  levelPillText: { fontSize: 10, fontWeight: "700", color: COLORS.primary },
+  time: { fontSize: SIZES.sm, color: COLORS.textSecondary, marginTop: 1 },
+  storyTag: {
+    flexDirection: "row", alignItems: "center", gap: 3,
+    backgroundColor: COLORS.primary, borderRadius: 10,
+    paddingHorizontal: 8, paddingVertical: 4,
+  },
+  storyTagText: { color: "#FFF", fontSize: 10, fontWeight: "700" },
+
+  // Body
+  cardBody: { marginTop: 14 },
+  beerRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  beerEmoji: { fontSize: 36 },
+  beerInfo: { flex: 1 },
+  beerAction: { fontSize: SIZES.lg, color: COLORS.text, lineHeight: 22 },
+  beerName: { fontWeight: "900", fontSize: SIZES.xl },
+  beerMeta: { fontSize: SIZES.sm, color: COLORS.textSecondary, marginTop: 2 },
+  barChip: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    marginTop: 10,
+    backgroundColor: COLORS.primaryLight,
+    alignSelf: "flex-start",
+    paddingHorizontal: 10, paddingVertical: 6,
+    borderRadius: 20,
+  },
+  barName: { fontSize: SIZES.sm, color: COLORS.primaryDark, fontWeight: "700" },
+  noteBox: { marginTop: 10 },
+  note: { fontSize: SIZES.md, color: COLORS.textSecondary, fontStyle: "italic", lineHeight: 20 },
+
+  // Footer
   cardFooter: {
-    marginTop: 12, paddingTop: 12,
+    marginTop: 14, paddingTop: 12,
     borderTopWidth: 1, borderTopColor: COLORS.border,
     flexDirection: "row",
   },
-  footerBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
-  empty: { alignItems: "center", marginTop: 100, gap: 8 },
-  emptyText: { fontSize: SIZES.xl, fontWeight: "700", color: COLORS.textSecondary },
-  emptySubtext: { fontSize: SIZES.md, color: COLORS.textSecondary },
+
+  // Empty
+  empty: { alignItems: "center", marginTop: 100, gap: 10 },
+  emptyIcon: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: "center", alignItems: "center",
+    marginBottom: 8,
+  },
+  emptyText: { fontSize: SIZES.xl, fontWeight: "800", color: COLORS.text },
+  emptySubtext: { fontSize: SIZES.md, color: COLORS.textSecondary, textAlign: "center" },
 });
