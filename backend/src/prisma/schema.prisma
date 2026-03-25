@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============ USERS ============
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  avatar    String?
+  level     Int      @default(1)
+  xp        Int      @default(0)
+  ghostMode Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  checkIns       CheckIn[]
+  barReviews     BarReview[]
+  userBadges     UserBadge[]
+  createdBars    Bar[]          @relation("BarCreator")
+  sentFriends    Friendship[]   @relation("FriendshipSender")
+  receivedFriends Friendship[]  @relation("FriendshipReceiver")
+  sentCheers     Cheers[]       @relation("CheersSender")
+  receivedCheers Cheers[]       @relation("CheersReceiver")
+  invitations    Invitation[]
+}
+
+// ============ FRIENDSHIPS ============
+model Friendship {
+  id       String           @id @default(cuid())
+  status   String           @default("pending") // pending, accepted, blocked
+
+  userId   String
+  friendId String
+  user     User @relation("FriendshipSender", fields: [userId], references: [id])
+  friend   User @relation("FriendshipReceiver", fields: [friendId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, friendId])
+}
+
+// ============ BEERS ============
+model Beer {
+  id       String  @id @default(cuid())
+  name     String
+  brand    String?
+  type     String  // IPA, Lager, Stout, Pils, Wheat, etc.
+  imageUrl String?
+
+  checkIns CheckIn[]
+
+  @@unique([name, brand])
+}
+
+// ============ BARS ============
+model Bar {
+  id        String  @id @default(cuid())
+  name      String
+  address   String?
+  latitude  Float?
+  longitude Float?
+  imageUrl  String?
+
+  createdById String
+  createdBy   User @relation("BarCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  checkIns    CheckIn[]
+  reviews     BarReview[]
+  invitations Invitation[]
+}
+
+model BarReview {
+  id             String @id @default(cuid())
+  rating         Int    // 1-5
+  priceRating    Int?   // 1-5
+  ambianceRating Int?   // 1-5
+  comment        String?
+
+  userId String
+  barId  String
+  user   User @relation(fields: [userId], references: [id])
+  bar    Bar  @relation(fields: [barId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, barId])
+}
+
+// ============ CHECK-INS (core feature) ============
+model CheckIn {
+  id        String   @id @default(cuid())
+  photoUrl  String?
+  isStory   Boolean  @default(false)
+  note      String?
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime @default(now())
+
+  userId String
+  beerId String
+  barId  String?
+  user   User  @relation(fields: [userId], references: [id])
+  beer   Beer  @relation(fields: [beerId], references: [id])
+  bar    Bar?  @relation(fields: [barId], references: [id])
+
+  cheers Cheers[]
+}
+
+// ============ BADGES ============
+model Badge {
+  id             String @id @default(cuid())
+  name           String @unique
+  description    String
+  icon           String
+  category       String // exploration, social, regularity, fun
+  conditionType  String // total_checkins, unique_bars, unique_types, streak, etc.
+  conditionValue Int    // e.g. 10 for "10 check-ins"
+
+  userBadges UserBadge[]
+}
+
+model UserBadge {
+  id         String   @id @default(cuid())
+  unlockedAt DateTime @default(now())
+
+  userId  String
+  badgeId String
+  user    User  @relation(fields: [userId], references: [id])
+  badge   Badge @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+}
+
+// ============ CHEERS ============
+model Cheers {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  fromUserId String
+  toUserId   String
+  checkInId  String
+  fromUser   User    @relation("CheersSender", fields: [fromUserId], references: [id])
+  toUser     User    @relation("CheersReceiver", fields: [toUserId], references: [id])
+  checkIn    CheckIn @relation(fields: [checkInId], references: [id])
+}
+
+// ============ INVITATIONS ("Qui rejoint ?") ============
+model Invitation {
+  id        String   @id @default(cuid())
+  message   String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  userId String
+  barId  String
+  user   User @relation(fields: [userId], references: [id])
+  bar    Bar  @relation(fields: [barId], references: [id])
+}

@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: zabrat-api
+    runtime: node
+    plan: free
+    buildCommand: npm install && npx prisma generate --schema=src/prisma/schema.prisma && npm run build
+    startCommand: node dist/server.js
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: zabrat-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production
+
+databases:
+  - name: zabrat-db
+    plan: free
+    databaseName: zabrat
