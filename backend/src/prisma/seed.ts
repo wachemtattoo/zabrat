@@ -3,22 +3,22 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  // Seed beers
+  // Bieres disponibles en Tunisie uniquement
   const beers = [
+    // Locales
     { name: "Celtia", brand: "SFBT", type: "Lager" },
-    { name: "Stella Artois", brand: "AB InBev", type: "Lager" },
-    { name: "Heineken", brand: "Heineken", type: "Lager" },
-    { name: "Corona Extra", brand: "Grupo Modelo", type: "Lager" },
-    { name: "Berber", brand: "SFBT", type: "Lager" },
-    { name: "Lowenbrau", brand: "AB InBev", type: "Lager" },
-    { name: "Guinness", brand: "Diageo", type: "Stout" },
-    { name: "1664 Blanc", brand: "Kronenbourg", type: "Wheat" },
-    { name: "Leffe Blonde", brand: "AB InBev", type: "Abbey" },
-    { name: "IPA Maison", brand: "Craft", type: "IPA" },
-    { name: "Budweiser", brand: "AB InBev", type: "Lager" },
-    { name: "Beck's", brand: "AB InBev", type: "Pils" },
-    { name: "Desperados", brand: "Heineken", type: "Lager" },
-    { name: "Skol", brand: "Carlsberg", type: "Lager" },
+    { name: "Stella", brand: "SFBT", type: "Lager" },
+    { name: "Stella Gold", brand: "SFBT", type: "Lager" },
+    { name: "Stella Black", brand: "SFBT", type: "Dark Lager" },
+    { name: "Berber", brand: "Sonobra", type: "Lager" },
+    { name: "Elbeya", brand: "Tunisienne", type: "Lager" },
+    // Importees (disponibles en Tunisie)
+    { name: "Heineken", brand: "Sonobra", type: "Lager" },
+    { name: "Beck's", brand: "SFBT", type: "Pils" },
+    { name: "Lowenbrau", brand: "SFBT", type: "Lager" },
+    { name: "33 Export", brand: "SFBT", type: "Lager" },
+    { name: "Golden Brau", brand: "Sonobra", type: "Lager" },
+    { name: "Fayrouz", brand: "Sonobra", type: "Sans alcool" },
   ];
 
   for (const beer of beers) {
