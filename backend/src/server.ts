@@ -11,6 +11,7 @@ import barRoutes from "./routes/bars";
 import invitationRoutes from "./routes/invitations";
 import storyRoutes from "./routes/stories";
 import recapRoutes from "./routes/recap";
+import profileRoutes from "./routes/profile";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,6 +31,7 @@ app.use("/bars", barRoutes);
 app.use("/invitations", invitationRoutes);
 app.use("/stories", storyRoutes);
 app.use("/recap", recapRoutes);
+app.use("/profile", profileRoutes);
 
 // Health check
 app.get("/health", (_, res) => {

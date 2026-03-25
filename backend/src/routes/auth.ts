@@ -87,7 +87,7 @@ router.post("/login", async (req: AuthRequest, res: Response) => {
 router.get("/me", authMiddleware, async (req: AuthRequest, res: Response) => {
   const user = await prisma.user.findUnique({
     where: { id: req.userId },
-    select: { id: true, username: true, email: true, avatar: true, level: true, xp: true, ghostMode: true, createdAt: true },
+    select: { id: true, username: true, email: true, avatar: true, bio: true, city: true, level: true, xp: true, ghostMode: true, createdAt: true },
   });
   if (!user) {
     res.status(404).json({ error: "Utilisateur non trouve" });

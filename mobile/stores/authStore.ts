@@ -7,8 +7,11 @@ interface User {
   username: string;
   email: string;
   avatar: string | null;
+  bio: string | null;
+  city: string | null;
   level: number;
   xp: number;
+  ghostMode: boolean;
 }
 
 interface AuthState {
@@ -19,6 +22,7 @@ interface AuthState {
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loadToken: () => Promise<void>;
+  updateUser: (data: Partial<User>) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -56,5 +60,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: async () => {
     await AsyncStorage.removeItem("token");
     set({ token: null, user: null });
+  },
+
+  updateUser: (data) => {
+    set((state) => ({
+      user: state.user ? { ...state.user, ...data } : null,
+    }));
   },
 }));

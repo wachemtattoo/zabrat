@@ -14,6 +14,8 @@ model User {
   email     String   @unique
   password  String
   avatar    String?
+  bio       String?
+  city      String?
   level     Int      @default(1)
   xp        Int      @default(0)
   ghostMode Boolean  @default(false)

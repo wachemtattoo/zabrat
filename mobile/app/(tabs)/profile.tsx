@@ -9,6 +9,7 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import WeeklyRecap from "../../components/WeeklyRecap";
 import { checkInsAPI, badgesAPI } from "../../services/api";
 import { useAuthStore } from "../../stores/authStore";
@@ -39,6 +40,7 @@ function getAvatarColor(name: string): string {
 
 export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
+  const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [badges, setBadges] = useState<Badge[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -80,8 +82,8 @@ export default function ProfileScreen() {
         <View style={styles.headerTop}>
           <View style={{ width: 40 }} />
           <Text style={styles.headerTitle}>Profil</Text>
-          <TouchableOpacity onPress={logout}>
-            <Ionicons name="settings-outline" size={22} color={COLORS.textSecondary} />
+          <TouchableOpacity onPress={() => router.push("/edit-profile")}>
+            <Ionicons name="create-outline" size={22} color={COLORS.primary} />
           </TouchableOpacity>
         </View>
 
@@ -92,11 +94,19 @@ export default function ProfileScreen() {
         </View>
         <Text style={styles.username}>{user?.username}</Text>
 
+        {user?.bio && <Text style={styles.bio}>{user.bio}</Text>}
+
         <View style={styles.levelRow}>
           <View style={styles.levelPill}>
             <Ionicons name="star" size={13} color={COLORS.star} />
             <Text style={styles.levelPillText}>Niveau {user?.level}</Text>
           </View>
+          {user?.city && (
+            <View style={styles.cityPill}>
+              <Ionicons name="location" size={12} color={COLORS.primary} />
+              <Text style={styles.cityPillText}>{user.city}</Text>
+            </View>
+          )}
         </View>
 
         {/* XP progress bar */}
@@ -230,7 +240,14 @@ const styles = StyleSheet.create({
   },
   avatarLargeText: { fontSize: 36, fontWeight: "900", color: "#FFF" },
   username: { fontSize: SIZES.xxl, fontWeight: "900", color: COLORS.text },
+  bio: { fontSize: SIZES.md, color: COLORS.textSecondary, marginTop: 6, textAlign: "center", paddingHorizontal: 24 },
   levelRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
+  cityPill: {
+    flexDirection: "row", alignItems: "center", gap: 3,
+    backgroundColor: COLORS.primaryLight, paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 14,
+  },
+  cityPillText: { fontSize: SIZES.sm, fontWeight: "600", color: COLORS.primary },
   levelPill: {
     flexDirection: "row", alignItems: "center", gap: 4,
     backgroundColor: COLORS.primaryLight, paddingHorizontal: 12, paddingVertical: 5,

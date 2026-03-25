@@ -94,4 +94,13 @@ export const recapAPI = {
   weekly: () => api.get("/recap/weekly"),
 };
 
+// Profile
+export const profileAPI = {
+  update: (data: { username?: string; email?: string; bio?: string | null; city?: string | null; avatar?: string | null; ghostMode?: boolean }) =>
+    api.put("/profile", data),
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    api.put("/profile/password", data),
+  deleteAccount: () => api.delete("/profile"),
+};
+
 export default api;
