@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     rootDir: backend
-    buildCommand: npm install && cp src/prisma/schema.production.prisma src/prisma/schema.prisma && npx prisma generate --schema=src/prisma/schema.prisma && npx prisma db push --schema=src/prisma/schema.prisma --accept-data-loss && npx tsx src/prisma/seed.ts && npm run build
+    buildCommand: npm install --include=dev && cp src/prisma/schema.production.prisma src/prisma/schema.prisma && npx prisma generate --schema=src/prisma/schema.prisma && npx prisma db push --schema=src/prisma/schema.prisma --accept-data-loss && npm run build && node dist/prisma/seed.js
     startCommand: node dist/server.js
     envVars:
       - key: DATABASE_URL
