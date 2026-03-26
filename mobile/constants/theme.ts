@@ -33,4 +33,4 @@ export const SIZES = {
   padding: 16,
 };
 
-export const API_URL = "http://localhost:3000";
+export const API_URL = "http://141.253.121.233/api";
