@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -18,7 +18,6 @@ if (Platform.OS !== "web") {
   MapView = Maps.default;
   Marker = Maps.Marker;
 }
-import { COLORS, SIZES } from "../constants/theme";
 
 interface NearbyBar {
   id: string;
@@ -28,6 +27,68 @@ interface NearbyBar {
   longitude: number;
   distance: number;
 }
+
+// Web-only map component using Leaflet
+function WebMap({ bars, location, isShop }: { bars: NearbyBar[]; location: { lat: number; lng: number }; isShop: (name: string) => boolean }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!mapRef.current || mapInstanceRef.current) return;
+
+    // Load Leaflet CSS
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+    document.head.appendChild(link);
+
+    // Load Leaflet JS
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    script.onload = () => {
+      const L = (window as any).L;
+      if (!L || !mapRef.current) return;
+
+      const map = L.map(mapRef.current, { zoomControl: false }).setView([location.lat, location.lng], 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "" }).addTo(map);
+
+      // User location (blue)
+      L.circleMarker([location.lat, location.lng], { radius: 8, color: "#fff", weight: 3, fillColor: "#2196F3", fillOpacity: 1 }).addTo(map).bindPopup("Toi");
+
+      // Bar markers
+      bars.forEach((bar) => {
+        const color = isShop(bar.name) ? "#4CAF50" : "#F5A623";
+        L.circleMarker([bar.latitude, bar.longitude], { radius: 7, color: "#fff", weight: 2, fillColor: color, fillOpacity: 1 })
+          .addTo(map)
+          .bindPopup(`<b>${bar.name}</b><br>${bar.distance} km`);
+      });
+
+      mapInstanceRef.current = map;
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [bars, location]);
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Ionicons name="map" size={18} color={COLORS.primary} />
+        <Text style={styles.headerText}>A proximite</Text>
+        <Text style={styles.headerCount}>{bars.length} lieux</Text>
+      </View>
+      <View style={styles.mapContainer}>
+        <div ref={mapRef as any} style={{ width: "100%", height: "100%", borderRadius: 16 }} />
+      </View>
+    </View>
+  );
+}
+import { COLORS, SIZES } from "../constants/theme";
 
 const { width } = Dimensions.get("window");
 
@@ -79,45 +140,9 @@ export default function NearbyMap() {
     );
   }
 
-  // Web: real map using OpenStreetMap iframe
+  // Web: render map using div + Leaflet injected via useEffect
   if (Platform.OS === "web") {
-    // Build markers for the map
-    const markersJs = bars.slice(0, 15).map((bar) => {
-      const color = isShop(bar.name) ? "green" : "orange";
-      return `L.marker([${bar.latitude},${bar.longitude}],{icon:L.divIcon({className:'',html:'<div style="background:${color};width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div>',iconSize:[12,12],iconAnchor:[6,6]})}).addTo(map).bindPopup('<b>${bar.name.replace(/'/g, "\\'")}</b><br>${bar.distance} km');`;
-    }).join("\n");
-
-    const mapHtml = `
-      <!DOCTYPE html><html><head>
-      <meta name="viewport" content="width=device-width,initial-scale=1">
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-      <style>body{margin:0}#map{width:100%;height:100%}</style>
-      </head><body><div id="map"></div><script>
-      var map=L.map('map',{zoomControl:false}).setView([${location.lat},${location.lng}],13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:''}).addTo(map);
-      L.marker([${location.lat},${location.lng}],{icon:L.divIcon({className:'',html:'<div style="background:#2196F3;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>',iconSize:[14,14],iconAnchor:[7,7]})}).addTo(map).bindPopup('Toi');
-      ${markersJs}
-      </script></body></html>`;
-
-    const blob = new Blob([mapHtml], { type: "text/html" });
-    const mapUrl = URL.createObjectURL(blob);
-
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Ionicons name="map" size={18} color={COLORS.primary} />
-          <Text style={styles.headerText}>A proximite</Text>
-          <Text style={styles.headerCount}>{bars.length} lieux</Text>
-        </View>
-        <View style={styles.mapContainer}>
-          <iframe
-            src={mapUrl}
-            style={{ width: "100%", height: "100%", border: "none", borderRadius: 16 } as any}
-          />
-        </View>
-      </View>
-    );
+    return <WebMap bars={bars} location={location} isShop={isShop} />;
   }
 
   return (
