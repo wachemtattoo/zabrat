@@ -9,8 +9,15 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
-import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import { barsAPI } from "../services/api";
+
+let MapView: any = null;
+let Marker: any = null;
+if (Platform.OS !== "web") {
+  const Maps = require("react-native-maps");
+  MapView = Maps.default;
+  Marker = Maps.Marker;
+}
 import { COLORS, SIZES } from "../constants/theme";
 
 interface NearbyBar {
@@ -108,7 +115,6 @@ export default function NearbyMap() {
 
       <View style={styles.mapContainer}>
         <MapView
-          provider={PROVIDER_DEFAULT}
           style={styles.map}
           initialRegion={{
             latitude: location.lat,
