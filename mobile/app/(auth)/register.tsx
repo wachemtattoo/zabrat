@@ -39,8 +39,15 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       await register(username, email, password);
-    } catch {
-      Alert.alert("Erreur", "Email ou username deja pris");
+    } catch (err: any) {
+      const msg = err?.response?.data?.error;
+      if (msg) {
+        Alert.alert("Erreur", typeof msg === "string" ? msg : "Verifiez vos informations");
+      } else if (err?.message?.includes("Network")) {
+        Alert.alert("Erreur reseau", "Impossible de contacter le serveur. Verifie ta connexion internet.");
+      } else {
+        Alert.alert("Erreur", "Une erreur est survenue. Reessaye.");
+      }
     } finally {
       setLoading(false);
     }

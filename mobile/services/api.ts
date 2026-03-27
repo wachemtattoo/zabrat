@@ -4,7 +4,7 @@ import { API_URL } from "../constants/theme";
 
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 30000,
 });
 
 api.interceptors.request.use(async (config) => {
