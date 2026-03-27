@@ -4,12 +4,12 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Platform,
-  Alert,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
+import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import { barsAPI } from "../services/api";
 import { COLORS, SIZES } from "../constants/theme";
 
@@ -22,10 +22,13 @@ interface NearbyBar {
   distance: number;
 }
 
+const { width } = Dimensions.get("window");
+
 export default function NearbyMap() {
   const [bars, setBars] = useState<NearbyBar[]>([]);
   const [loading, setLoading] = useState(true);
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [location, setLocation] = useState<{ lat: number; lng: number }>({ lat: 36.8, lng: 10.18 });
+  const [selectedBar, setSelectedBar] = useState<NearbyBar | null>(null);
 
   useEffect(() => {
     loadNearby();
@@ -33,50 +36,63 @@ export default function NearbyMap() {
 
   const loadNearby = async () => {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        // Default to Tunis center if no permission
-        const { data } = await barsAPI.nearby(36.8, 10.18, 50);
-        setBars(data);
-        setLoading(false);
-        return;
-      }
+      let lat = 36.8;
+      let lng = 10.18;
 
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      setLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
-      const { data } = await barsAPI.nearby(loc.coords.latitude, loc.coords.longitude, 20);
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === "granted") {
+          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          lat = loc.coords.latitude;
+          lng = loc.coords.longitude;
+        }
+      } catch {}
+
+      setLocation({ lat, lng });
+      const { data } = await barsAPI.nearby(lat, lng, 30);
       setBars(data);
     } catch (err) {
       console.error(err);
-      // Fallback to Tunis
-      try {
-        const { data } = await barsAPI.nearby(36.8, 10.18, 50);
-        setBars(data);
-      } catch {}
     } finally {
       setLoading(false);
     }
   };
 
+  const isShop = (name: string) => {
+    const lower = name.toLowerCase();
+    return lower.includes("magasin") || lower.includes("monoprix") || lower.includes("carrefour") || lower.includes("nicolas");
+  };
+
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Ionicons name="location" size={18} color={COLORS.primary} />
-          <Text style={styles.headerText}>Chargement...</Text>
-        </View>
+      <View style={styles.loadingBox}>
+        <Ionicons name="map-outline" size={20} color={COLORS.textSecondary} />
+        <Text style={styles.loadingText}>Chargement de la carte...</Text>
       </View>
     );
   }
 
-  if (bars.length === 0) {
+  // Web fallback - no MapView
+  if (Platform.OS === "web") {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Ionicons name="location" size={18} color={COLORS.primary} />
-          <Text style={styles.headerText}>Aucun bar a proximite</Text>
+          <Ionicons name="map" size={18} color={COLORS.primary} />
+          <Text style={styles.headerText}>A proximite</Text>
+          <Text style={styles.headerCount}>{bars.length} lieux</Text>
+        </View>
+        <View style={styles.webList}>
+          {bars.slice(0, 6).map((bar) => (
+            <TouchableOpacity key={bar.id} style={styles.webCard} activeOpacity={0.8}>
+              <View style={[styles.pinIcon, isShop(bar.name) && styles.pinIconShop]}>
+                <Ionicons name={isShop(bar.name) ? "cart" : "beer"} size={16} color="#FFF" />
+              </View>
+              <View style={styles.webCardInfo}>
+                <Text style={styles.webCardName} numberOfLines={1}>{bar.name}</Text>
+                <Text style={styles.webCardDist}>{bar.distance} km</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
     );
@@ -90,106 +106,133 @@ export default function NearbyMap() {
         <Text style={styles.headerCount}>{bars.length} lieux</Text>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
-      >
-        {bars.slice(0, 10).map((bar) => (
-          <TouchableOpacity key={bar.id} style={styles.barCard} activeOpacity={0.8}>
-            <View style={styles.barIcon}>
-              <Ionicons
-                name={bar.name.toLowerCase().includes("magasin") || bar.name.toLowerCase().includes("monoprix") || bar.name.toLowerCase().includes("carrefour") || bar.name.toLowerCase().includes("nicolas")
-                  ? "cart"
-                  : "beer"}
-                size={20}
-                color="#FFF"
-              />
-            </View>
-            <View style={styles.barInfo}>
-              <Text style={styles.barName} numberOfLines={1}>{bar.name}</Text>
-              <Text style={styles.barAddress} numberOfLines={1}>{bar.address}</Text>
-              <View style={styles.distanceRow}>
-                <Ionicons name="navigate-outline" size={12} color={COLORS.primary} />
-                <Text style={styles.distanceText}>{bar.distance} km</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View style={styles.mapContainer}>
+        <MapView
+          provider={PROVIDER_DEFAULT}
+          style={styles.map}
+          initialRegion={{
+            latitude: location.lat,
+            longitude: location.lng,
+            latitudeDelta: 0.08,
+            longitudeDelta: 0.08,
+          }}
+          showsUserLocation
+          showsMyLocationButton={false}
+        >
+          {bars.map((bar) => (
+            <Marker
+              key={bar.id}
+              coordinate={{ latitude: bar.latitude, longitude: bar.longitude }}
+              title={bar.name}
+              description={`${bar.distance} km${bar.address ? " · " + bar.address : ""}`}
+              pinColor={isShop(bar.name) ? "#4CAF50" : COLORS.primary}
+              onPress={() => setSelectedBar(bar)}
+            />
+          ))}
+        </MapView>
+
+        {/* Legend */}
+        <View style={styles.legend}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: COLORS.primary }]} />
+            <Text style={styles.legendText}>Bars</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: "#4CAF50" }]} />
+            <Text style={styles.legendText}>Magasins</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Selected bar info */}
+      {selectedBar && (
+        <View style={styles.selectedCard}>
+          <View style={[styles.selectedIcon, isShop(selectedBar.name) && { backgroundColor: "#4CAF50" }]}>
+            <Ionicons name={isShop(selectedBar.name) ? "cart" : "beer"} size={20} color="#FFF" />
+          </View>
+          <View style={styles.selectedInfo}>
+            <Text style={styles.selectedName}>{selectedBar.name}</Text>
+            <Text style={styles.selectedAddr}>{selectedBar.address}</Text>
+          </View>
+          <View style={styles.selectedDist}>
+            <Text style={styles.selectedDistText}>{selectedBar.distance} km</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: 8,
+  container: { marginBottom: 12 },
+  loadingBox: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    padding: 16, marginBottom: 12,
   },
+  loadingText: { fontSize: SIZES.md, color: COLORS.textSecondary },
+
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: 10,
+    flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10,
   },
-  headerText: {
-    fontSize: SIZES.lg,
-    fontWeight: "800",
-    color: COLORS.text,
-    flex: 1,
+  headerText: { fontSize: SIZES.lg, fontWeight: "800", color: COLORS.text, flex: 1 },
+  headerCount: { fontSize: SIZES.sm, color: COLORS.primary, fontWeight: "700" },
+
+  // Map
+  mapContainer: {
+    borderRadius: SIZES.radiusLg,
+    overflow: "hidden",
+    height: 200,
   },
-  headerCount: {
-    fontSize: SIZES.sm,
-    color: COLORS.primary,
-    fontWeight: "700",
+  map: {
+    width: "100%",
+    height: "100%",
   },
-  scroll: {
-    gap: 10,
-    paddingRight: 16,
+  legend: {
+    position: "absolute", bottom: 8, left: 8,
+    flexDirection: "row", gap: 12,
+    backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 5,
   },
-  barCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.surface,
-    borderRadius: SIZES.radius,
-    padding: 12,
-    gap: 10,
-    width: 220,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+  legendItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendText: { fontSize: 10, fontWeight: "600", color: COLORS.text },
+
+  // Selected bar
+  selectedCard: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: COLORS.surface, borderRadius: SIZES.radius,
+    padding: 12, marginTop: 8,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
   },
-  barIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  selectedIcon: {
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: COLORS.primary,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: "center", alignItems: "center",
   },
-  barInfo: {
-    flex: 1,
+  selectedInfo: { flex: 1 },
+  selectedName: { fontSize: SIZES.md, fontWeight: "700", color: COLORS.text },
+  selectedAddr: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
+  selectedDist: {
+    backgroundColor: COLORS.primaryLight, paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 12,
   },
-  barName: {
-    fontSize: SIZES.md,
-    fontWeight: "700",
-    color: COLORS.text,
+  selectedDistText: { fontSize: 12, fontWeight: "700", color: COLORS.primary },
+
+  // Web fallback
+  webList: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  webCard: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    backgroundColor: COLORS.surface, borderRadius: SIZES.radius,
+    padding: 10, width: "48%",
   },
-  barAddress: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    marginTop: 1,
+  pinIcon: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: COLORS.primary,
+    justifyContent: "center", alignItems: "center",
   },
-  distanceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    marginTop: 4,
-  },
-  distanceText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: COLORS.primary,
-  },
+  pinIconShop: { backgroundColor: "#4CAF50" },
+  webCardInfo: { flex: 1 },
+  webCardName: { fontSize: 12, fontWeight: "700", color: COLORS.text },
+  webCardDist: { fontSize: 10, color: COLORS.primary, fontWeight: "600" },
 });
