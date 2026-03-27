@@ -79,8 +79,30 @@ export default function NearbyMap() {
     );
   }
 
-  // Web fallback - no MapView
+  // Web: real map using OpenStreetMap iframe
   if (Platform.OS === "web") {
+    // Build markers for the map
+    const markersJs = bars.slice(0, 15).map((bar) => {
+      const color = isShop(bar.name) ? "green" : "orange";
+      return `L.marker([${bar.latitude},${bar.longitude}],{icon:L.divIcon({className:'',html:'<div style="background:${color};width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div>',iconSize:[12,12],iconAnchor:[6,6]})}).addTo(map).bindPopup('<b>${bar.name.replace(/'/g, "\\'")}</b><br>${bar.distance} km');`;
+    }).join("\n");
+
+    const mapHtml = `
+      <!DOCTYPE html><html><head>
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <style>body{margin:0}#map{width:100%;height:100%}</style>
+      </head><body><div id="map"></div><script>
+      var map=L.map('map',{zoomControl:false}).setView([${location.lat},${location.lng}],13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:''}).addTo(map);
+      L.marker([${location.lat},${location.lng}],{icon:L.divIcon({className:'',html:'<div style="background:#2196F3;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>',iconSize:[14,14],iconAnchor:[7,7]})}).addTo(map).bindPopup('Toi');
+      ${markersJs}
+      </script></body></html>`;
+
+    const blob = new Blob([mapHtml], { type: "text/html" });
+    const mapUrl = URL.createObjectURL(blob);
+
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -88,18 +110,11 @@ export default function NearbyMap() {
           <Text style={styles.headerText}>A proximite</Text>
           <Text style={styles.headerCount}>{bars.length} lieux</Text>
         </View>
-        <View style={styles.webList}>
-          {bars.slice(0, 6).map((bar) => (
-            <TouchableOpacity key={bar.id} style={styles.webCard} activeOpacity={0.8}>
-              <View style={[styles.pinIcon, isShop(bar.name) && styles.pinIconShop]}>
-                <Ionicons name={isShop(bar.name) ? "cart" : "beer"} size={16} color="#FFF" />
-              </View>
-              <View style={styles.webCardInfo}>
-                <Text style={styles.webCardName} numberOfLines={1}>{bar.name}</Text>
-                <Text style={styles.webCardDist}>{bar.distance} km</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.mapContainer}>
+          <iframe
+            src={mapUrl}
+            style={{ width: "100%", height: "100%", border: "none", borderRadius: 16 } as any}
+          />
         </View>
       </View>
     );
