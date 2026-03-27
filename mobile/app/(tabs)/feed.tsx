@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { checkInsAPI, storiesAPI, invitationsAPI } from "../../services/api";
 import { useAuthStore } from "../../stores/authStore";
 import CheersButton from "../../components/CheersButton";
+import NearbyMap from "../../components/NearbyMap";
 import { COLORS, SIZES } from "../../constants/theme";
 
 interface CheckIn {
@@ -228,6 +229,7 @@ export default function FeedScreen() {
         renderItem={renderItem}
         ListHeaderComponent={
           <>
+            <NearbyMap />
             {renderStories()}
             {renderInvitations()}
           </>

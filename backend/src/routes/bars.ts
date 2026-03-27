@@ -31,6 +31,44 @@ router.get("/", authMiddleware, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// GET /bars/nearby — Bars near a location
+router.get("/nearby", authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const lat = parseFloat(req.query.lat as string);
+    const lng = parseFloat(req.query.lng as string);
+    const radius = parseFloat((req.query.radius as string) || "5"); // km
+
+    if (isNaN(lat) || isNaN(lng)) {
+      res.status(400).json({ error: "lat et lng requis" });
+      return;
+    }
+
+    // Get all bars with coordinates
+    const allBars = await prisma.bar.findMany({
+      where: { latitude: { not: null }, longitude: { not: null } },
+    });
+
+    // Filter by distance (Haversine formula)
+    const nearby = allBars
+      .map((bar) => {
+        const dLat = ((bar.latitude! - lat) * Math.PI) / 180;
+        const dLng = ((bar.longitude! - lng) * Math.PI) / 180;
+        const a =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos((lat * Math.PI) / 180) * Math.cos((bar.latitude! * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+        const distance = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return { ...bar, distance: Math.round(distance * 100) / 100 };
+      })
+      .filter((bar) => bar.distance <= radius)
+      .sort((a, b) => a.distance - b.distance);
+
+    res.json(nearby);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
 // POST /bars — Create a bar
 router.post("/", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {

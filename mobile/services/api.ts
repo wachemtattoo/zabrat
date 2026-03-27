@@ -72,6 +72,8 @@ export const cheersAPI = {
 // Bars
 export const barsAPI = {
   list: (q?: string) => api.get("/bars", { params: { q } }),
+  nearby: (lat: number, lng: number, radius?: number) =>
+    api.get("/bars/nearby", { params: { lat, lng, radius: radius || 5 } }),
   create: (data: { name: string; address?: string }) => api.post("/bars", data),
   detail: (id: string) => api.get(`/bars/${id}`),
   review: (id: string, data: { rating: number; priceRating?: number; ambianceRating?: number; comment?: string }) =>
