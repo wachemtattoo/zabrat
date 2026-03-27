@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useAuthStore } from "../stores/authStore";
-import { View, Text, Animated, StyleSheet } from "react-native";
+import { View, Text, Image, Animated, StyleSheet } from "react-native";
 import { COLORS } from "../constants/theme";
 
 function SplashScreen() {
@@ -19,7 +19,7 @@ function SplashScreen() {
   return (
     <View style={splashStyles.container}>
       <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
-        <Text style={splashStyles.emoji}>🍺</Text>
+        <Image source={require("../assets/splash-icon.png")} style={splashStyles.logo} />
         <Text style={splashStyles.title}>Zabrat</Text>
         <Text style={splashStyles.subtitle}>Track. Share. Cheers.</Text>
       </Animated.View>
@@ -32,7 +32,7 @@ const splashStyles = StyleSheet.create({
     flex: 1, justifyContent: "center", alignItems: "center",
     backgroundColor: COLORS.primary,
   },
-  emoji: { fontSize: 64, textAlign: "center", marginBottom: 12 },
+  logo: { width: 120, height: 120, borderRadius: 24, marginBottom: 16 },
   title: { fontSize: 42, fontWeight: "900", color: "#FFF", textAlign: "center" },
   subtitle: { fontSize: 16, color: "rgba(255,255,255,0.8)", textAlign: "center", marginTop: 8, letterSpacing: 2 },
 });

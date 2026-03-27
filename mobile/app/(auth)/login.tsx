@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   View,
   Text,
+  Image,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -51,7 +52,7 @@ export default function LoginScreen() {
     >
       {/* Logo section */}
       <View style={styles.header}>
-        <Text style={styles.logoEmoji}>🍺</Text>
+        <Image source={require("../../assets/icon.png")} style={styles.logoImg} />
         <Text style={styles.logo}>Zabrat</Text>
         <Text style={styles.subtitle}>Track. Share. Cheers.</Text>
       </View>
@@ -118,7 +119,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 48,
   },
-  logoEmoji: { fontSize: 56, marginBottom: 8 },
+  logoImg: { width: 90, height: 90, borderRadius: 18, marginBottom: 12 },
   logo: {
     fontSize: 44,
     fontWeight: "900",

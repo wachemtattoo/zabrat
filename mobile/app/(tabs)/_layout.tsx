@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { View, Text, StyleSheet, Platform } from "react-native";
+import { View, Text, Image, StyleSheet, Platform } from "react-native";
 import { COLORS } from "../../constants/theme";
 
 export default function TabsLayout() {
@@ -22,7 +22,7 @@ export default function TabsLayout() {
           title: "Accueil",
           headerTitle: () => (
             <View style={styles.headerLogo}>
-              <Text style={styles.headerLogoEmoji}>🍺</Text>
+              <Image source={require("../../assets/icon.png")} style={styles.headerLogoImg} />
               <Text style={styles.headerLogoText}>Zabrat</Text>
             </View>
           ),
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  headerLogoEmoji: { fontSize: 24 },
+  headerLogoImg: { width: 32, height: 32, borderRadius: 6 },
   headerLogoText: {
     fontSize: 26,
     fontWeight: "900",
