@@ -26,6 +26,13 @@
     "plugins": [
       "expo-router",
       "expo-sharing"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3bc6e01d-bba7-4e0a-ae6f-444eacacd1a0"
+      }
+    },
+    "owner": "centrelaer"
   }
 }
